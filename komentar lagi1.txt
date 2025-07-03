@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Form Komentar</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0d47a1, #1976d2);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    form {
+      max-width: 600px;
+      margin: auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 8px;
+    }
+    input[type="submit"] {
+      background: #ffeb3b;
+      color: #0d47a1;
+      font-weight: bold;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    input[type="submit"]:hover {
+      background: #fdd835;
+    }
+
+    .comments {
+      max-width: 600px;
+      margin: 30px auto;
+    }
+    .comment {
+      background: rgba(255,255,255,0.2);
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      animation: fadeIn 0.5s ease forwards;
+    }
+    .comment h4 {
+      margin: 0 0 5px 0;
+      font-size: 1.1em;
+      color: #ffeb3b;
+    }
+    .comment small {
+      font-size: 0.8em;
+      color: #fff;
+    }
+    .comment p {
+      margin: 8px 0 0 0;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    @media(max-width: 600px){
+      body { padding: 10px; }
+      form, .comments { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<h2>Form Komentar</h2>
+<form id="komentarForm">
+  <label for="nama">Nama:</label>
+  <input type="text" id="nama" name="nama" required>
+
+  <label for="komentar">Komentar:</label>
+  <textarea id="komentar" name="komentar" rows="3" required></textarea>
+
+  <input type="submit" value="Kirim Komentar">
+</form>
+
+<div class="comments" id="commentsList">
+  <!-- komentar akan muncul di sini -->
+</div>
+
+<script>
+const urlScript = "https://script.google.com/macros/s/AKfycbzThFJeyozAlnJrhHu40CFoheXHxAjhoREBPj8uM66dAgs0izv_NTnVrnygKds0q0jy/exec";
+
+document.getElementById("komentarForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nama = document.getElementById("nama").value.trim();
+  const komentar = document.getElementById("komentar").value.trim();
+  if (!nama || !komentar) return alert("Lengkapi nama dan komentar!");
+
+  await fetch(urlScript, {
+    method: "POST",
+    body: JSON.stringify({nama, komentar})
+  });
+  document.getElementById("komentarForm").reset();
+  loadKomentar();
+});
+
+function formatTanggal(dateStr) {
+  try {
+    let date = new Date(dateStr);
+    let d = date.getDate().toString().padStart(2,"0");
+    let m = (date.getMonth()+1).toString().padStart(2,"0");
+    let y = date.getFullYear();
+    return `${y}-${m}-${d}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function loadKomentar(){
+  fetch(urlScript.replace("/exec", "/getData"))
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById("commentsList");
+      list.innerHTML = "";
+      data.reverse().forEach(d => {
+        list.innerHTML += `
+          <div class="comment">
+            <h4>${d.nama} <small>${formatTanggal(d.tanggaljam)}</small></h4>
+            <p>${d.komentar}</p>
+          </div>`;
+      });
+    });
+}
+loadKomentar();
+</script>
+</body>
+</html>

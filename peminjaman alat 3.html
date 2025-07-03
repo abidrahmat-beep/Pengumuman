@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Form Peminjaman Alat</title>
+  <style>
+    body {
+      background: #e0f7ff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #007BFF;
+    }
+    form, table {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      border: 2px solid #007BFF;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    input[type="submit"] {
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    input[type="submit"]:hover {
+      background: #0056b3;
+    }
+    .hidden { display: none; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      font-size: 0.8em;
+      text-align: center;
+    }
+    th, td {
+      border: 1px solid #007BFF;
+      padding: 8px;
+    }
+    th {
+      background: #007BFF;
+      color: white;
+    }
+    #loadingOverlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      color: #007BFF;
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">Mengirim data...</div>
+
+<h2>Form Peminjaman / Pengembalian Alat</h2>
+<form id="peminjamanForm">
+  <label for="nama">Nama Guru:</label>
+  <input type="text" id="nama" name="nama" required>
+
+  <label for="email">Email:</label>
+  <input type="email" id="email" name="email" required>
+
+  <label for="wa">Nomor WA:</label>
+  <input type="text" id="wa" name="wa" required>
+
+  <label for="keperluan">Keperluan:</label>
+  <select id="keperluan" name="keperluan" required onchange="showFields(this.value)">
+    <option value="">--Pilih--</option>
+    <option value="Meminjam">Meminjam</option>
+    <option value="Mengembalikan">Mengembalikan</option>
+  </select>
+
+  <div id="meminjamFields" class="hidden">
+    <label for="daftar_pinjaman">Daftar Alat yang Dipinjam & Jumlah:</label>
+    <textarea id="daftar_pinjaman" name="daftar_pinjaman"></textarea>
+    <label for="foto_pinjaman">Upload Foto Alat:</label>
+    <input type="file" id="foto_pinjaman" accept="image/*">
+    <label for="tgl_kembali">Tanggal Pengembalian:</label>
+    <input type="date" id="tgl_kembali" name="tgl_kembali">
+  </div>
+
+  <div id="mengembalikanFields" class="hidden">
+    <label for="daftar_kembali">Daftar Alat yang Dikembalikan & Jumlah:</label>
+    <textarea id="daftar_kembali" name="daftar_kembali"></textarea>
+    <label for="foto_kembali">Upload Foto Alat:</label>
+    <input type="file" id="foto_kembali" accept="image/*">
+  </div>
+
+  <input type="submit" value="Kirim Data">
+</form>
+
+<h2>Data Peminjaman</h2>
+<table id="tabelData">
+  <thead>
+    <tr>
+      <th>Tanggal</th><th>Nama</th><th>Email</th><th>WA</th><th>Keperluan</th>
+      <th>Pinjaman</th><th>Foto Pinjam</th><th>Tgl Kembali</th><th>Kembali</th><th>Foto Kembali</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  const urlScript = "https://script.google.com/macros/s/AKfycbytH5QVk3sTL7yXCftZbRSQN0ngYf9Wh0c5ptu1GMk1c-JAV1h4zP0hrzF4PhRPqaTl/exec";
+
+  function showFields(value) {
+    document.getElementById('meminjamFields').classList.add('hidden');
+    document.getElementById('mengembalikanFields').classList.add('hidden');
+    if (value === "Meminjam") document.getElementById('meminjamFields').classList.remove('hidden');
+    if (value === "Mengembalikan") document.getElementById('mengembalikanFields').classList.remove('hidden');
+  }
+
+  document.getElementById('peminjamanForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+
+    const form = e.target;
+    const data = new FormData(form);
+
+    if (data.get("keperluan") === "Meminjam") {
+      data.set("foto_pinjaman", await fileToBase64(document.getElementById("foto_pinjaman").files[0]));
+    } else if (data.get("keperluan") === "Mengembalikan") {
+      data.set("foto_kembali", await fileToBase64(document.getElementById("foto_kembali").files[0]));
+    }
+
+    fetch(urlScript, { method: "POST", body: data })
+    .then(res => res.text())
+    .then(() => {
+      alert("Data berhasil disimpan!");
+      form.reset(); showFields("");
+      loadData();
+    })
+    .catch(() => alert("Gagal simpan data"))
+    .finally(() => overlay.style.display = 'none');
+  });
+
+  function fileToBase64(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve("");
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function formatTanggalPinjam(isoStr) {
+    if (!isoStr) return "";
+    try {
+      let date = new Date(isoStr);
+      let local = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+      let d = local.getDate().toString().padStart(2,"0");
+      let m = (local.getMonth()+1).toString().padStart(2,"0");
+      let y = local.getFullYear();
+      let h = local.getHours().toString().padStart(2,"0");
+      let min = local.getMinutes().toString().padStart(2,"0");
+      return `${d}-${m}-${y} ${h}.${min}`;
+    } catch(e) { return isoStr; }
+  }
+
+  function formatTanggalKembali(isoStr) {
+    if (!isoStr) return "";
+    try {
+      let date = new Date(isoStr);
+      let local = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+      let d = local.getDate().toString().padStart(2,"0");
+      let m = (local.getMonth()+1).toString().padStart(2,"0");
+      let y = local.getFullYear();
+      return `${d}-${m}-${y}`;
+    } catch(e) { return isoStr; }
+  }
+
+  function loadData() {
+    fetch(urlScript)
+      .then(res => res.json())
+      .then(rows => {
+        const tbody = document.querySelector("#tabelData tbody");
+        tbody.innerHTML = "";
+        rows.reverse().forEach(r => {
+          tbody.innerHTML += `<tr>
+            <td>${formatTanggalPinjam(r.tanggal)}</td><td>${r.nama}</td><td>${r.email}</td><td>${r.wa}</td><td>${r.keperluan}</td>
+            <td>${r.daftar_pinjaman||""}</td>
+            <td>${r.foto_pinjaman?'<a href="'+r.foto_pinjaman+'" target="_blank">Lihat Foto</a>':""}</td>
+            <td>${formatTanggalKembali(r.tgl_kembali)}</td>
+            <td>${r.daftar_kembali||""}</td>
+            <td>${r.foto_kembali?'<a href="'+r.foto_kembali+'" target="_blank">Lihat Foto</a>':""}</td>
+          </tr>`;
+        });
+      });
+  }
+  loadData();
+</script>
+</body>
+</html>
